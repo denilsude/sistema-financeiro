@@ -154,3 +154,30 @@ model Goal {
 
   user          User?     @relation(fields: [userId], references: [id])
 }
+model Institution {
+  id        String    @id @default(uuid())
+  name      String    // Ex: Nubank, Banco do Brasil, Itaú
+  code      String?   // Código do banco
+  color     String?   // Ex: #820ad1 (Nubank), #f4cc00 (BB)
+  createdAt DateTime  @default(now())
+  
+  accounts  Account[]
+  cards     Card[]
+}
+
+model Account {
+  id            String    @id @default(uuid())
+  institutionId String
+  userId        String?
+  companyId     String?
+  name          String    // Ex: Conta Corrente, PJ Mandi
+  type          String    // CHECKING, SAVINGS, INVESTMENT, CREDIT
+  balance       Int       // Saldo em centavos
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  institution   Institution @relation(fields: [institutionId], references: [id])
+  user          User?       @relation(fields: [userId], references: [id])
+  company       Company?    @relation(fields: [companyId], references: [id])
+  transactions  Transaction[]
+}
