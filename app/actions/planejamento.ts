@@ -5,16 +5,12 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 export async function getResumoMes(mes: number, ano: number) {
-  // Define o primeiro e o último dia do mês selecionado
   const dataInicial = new Date(ano, mes - 1, 1);
   const dataFinal = new Date(ano, mes, 0, 23, 59, 59);
 
   const transacoes = await prisma.transaction.findMany({
     where: {
-      date: {
-        gte: dataInicial,
-        lte: dataFinal,
-      },
+      date: { gte: dataInicial, lte: dataFinal },
       isRealized: true,
     },
   });
@@ -27,26 +23,50 @@ export async function getResumoMes(mes: number, ano: number) {
     if (t.type === "EXPENSE") despesas += t.amount;
   });
 
-  const excedente = receitas - despesas;
-
   return {
     receitas,
     despesas,
-    excedente,
+    excedente: receitas - despesas,
     transacoes,
   };
 }
 
-// Esta função fará a ponte com o seu n8n ou direto com a API do Gemini futuramente
 export async function analisarComIA(dados: any) {
-  // Simulação de chamada para o Webhook do n8n
-  /*
-  const response = await fetch("SEU_WEBHOOK_N8N", {
-    method: "POST",
-    body: JSON.stringify(dados),
-  });
-  return await response.json();
-  */
-  
-  return "Análise da IA: Com base no seu excedente deste mês, sugiro alocar 20% para a Reserva de Emergência, 30% para investimentos do núcleo familiar e reduzir os gastos com 'Delivery', que representaram 15% das saídas. O pró-labore empresarial está saudável e permite a projeção de troca do carro em 12 meses.";
+  // URL do Webhook do seu n8n (Você pode colocar essa URL no seu .env depois)
+  // Exemplo: http://10.210.10.X:5678/webhook/analise-financeira
+  const N8N_WEBHOOK_URL = process.env.N8N_WEBHOOK_URL || "COLOQUE_AQUI_A_URL_DO_SEU_WEBHOOK_N8N";
+
+  try {
+    const payload = {
+      tipo: "ANALISE_MENSAL",
+      dadosFinanceiros: {
+        receitasBrutas: dados.receitas / 100,
+        despesasGerais: dados.despesas / 100,
+        excedenteLivre: dados.excedente / 100,
+      },
+      contextoMercado: {
+        interesses: ["Fundos Imobiliários", "Ações", "Caixinha Nubank"],
+        perfil: "Conservador/Moderado"
+      }
+    };
+
+    const response = await fetch(N8N_WEBHOOK_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      return "Erro ao contatar o Conselheiro Financeiro (n8n). Verifique se o workflow está ativo.";
+    }
+
+    const data = await response.json();
+    
+    // O n8n deve retornar um JSON com um campo "mensagem"
+    return data.mensagem || "Análise concluída, mas nenhum texto foi retornado pela IA.";
+
+  } catch (error) {
+    console.error("Erro no Webhook:", error);
+    return "O servidor n8n está inacessível no momento. Tente novamente mais tarde.";
+  }
 }
