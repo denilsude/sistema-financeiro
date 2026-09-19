@@ -12,7 +12,6 @@ import {
   CreditCard
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
 
 const menuItems = [
   { name: "Dashboard", icon: Home, href: "/" },
@@ -23,7 +22,7 @@ const menuItems = [
   { name: "Empresa", icon: Building2, href: "/empresa" },
 ];
 
-export function Sidebar() {
+export function SidebarNav() {
   const pathname = usePathname();
 
   return (
