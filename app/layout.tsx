@@ -6,7 +6,7 @@ import { SidebarNav } from "@/components/sidebar-nav";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Gestão Financeira",
+  title: "Mandi Finance",
   description: "Plataforma de inteligência financeira.",
 };
 
