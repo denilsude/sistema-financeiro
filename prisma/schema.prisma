@@ -1,0 +1,152 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Family {
+  id         String    @id @default(uuid())
+  name       String
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  members    User[]
+  companies  Company[]
+  categories Category[]
+}
+
+model User {
+  id            String    @id @default(uuid())
+  familyId      String
+  name          String
+  email         String    @unique
+  passwordHash  String
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  family        Family    @relation(fields: [familyId], references: [id])
+  accounts      Account[]
+  goals         Goal[]
+}
+
+model Company {
+  id          String    @id @default(uuid())
+  familyId    String
+  name        String
+  cnpj        String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  family      Family    @relation(fields: [familyId], references: [id])
+  accounts    Account[]
+}
+
+model Institution {
+  id        String    @id @default(uuid())
+  name      String
+  code      String?
+  createdAt DateTime  @default(now())
+  
+  accounts  Account[]
+  cards     Card[]
+}
+
+model Account {
+  id            String    @id @default(uuid())
+  institutionId String
+  userId        String?
+  companyId     String?
+  name          String
+  type          String
+  balance       Int
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  institution   Institution @relation(fields: [institutionId], references: [id])
+  user          User?       @relation(fields: [userId], references: [id])
+  company       Company?    @relation(fields: [companyId], references: [id])
+  transactions  Transaction[]
+}
+
+model Card {
+  id            String    @id @default(uuid())
+  institutionId String
+  ownerId       String
+  name          String
+  limit         Int
+  closingDay    Int
+  dueDay        Int
+  createdAt     DateTime  @default(now())
+
+  institution   Institution @relation(fields: [institutionId], references: [id])
+  invoices      CardInvoice[]
+}
+
+model CardInvoice {
+  id          String    @id @default(uuid())
+  cardId      String
+  month       Int
+  year        Int
+  totalAmount Int
+  isPaid      Boolean   @default(false)
+
+  card        Card      @relation(fields: [cardId], references: [id])
+}
+
+model Category {
+  id          String    @id @default(uuid())
+  familyId    String
+  name        String
+  type        String
+  color       String?
+  
+  family      Family    @relation(fields: [familyId], references: [id])
+  subcategories Subcategory[]
+  transactions Transaction[]
+}
+
+model Subcategory {
+  id          String    @id @default(uuid())
+  categoryId  String
+  name        String
+
+  category    Category  @relation(fields: [categoryId], references: [id])
+  transactions Transaction[]
+}
+
+model Transaction {
+  id              String    @id @default(uuid())
+  accountId       String
+  categoryId      String?
+  subcategoryId   String?
+  type            String
+  amount          Int
+  date            DateTime
+  description     String
+  payee           String?
+  beneficiaryType String
+  beneficiaryId   String
+  isRealized      Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  account         Account      @relation(fields: [accountId], references: [id])
+  category        Category?    @relation(fields: [categoryId], references: [id])
+  subcategory     Subcategory? @relation(fields: [subcategoryId], references: [id])
+}
+
+model Goal {
+  id            String    @id @default(uuid())
+  userId        String?
+  name          String
+  targetAmount  Int
+  currentAmount Int       @default(0)
+  targetDate    DateTime?
+  isCompleted   Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+
+  user          User?     @relation(fields: [userId], references: [id])
+}
