@@ -1,57 +1,88 @@
 "use client";
 
 import { UploadCloud, FileText, CheckCircle2 } from "lucide-react";
-import { useState } from "react";
+import { useState, useCallback } from "react";
 
 export default function ImportacaoPage() {
   const [isDragging, setIsDragging] = useState(false);
   const [file, setFile] = useState<File | null>(null);
 
-  const handleDragOver = (e: React.DragEvent) => {
+  // Previne o navegador de abrir o arquivo acidentalmente
+  const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     setIsDragging(true);
-  };
+  }, []);
 
-  const handleDragLeave = () => setIsDragging(false);
-
-  const handleDrop = (e: React.DragEvent) => {
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     setIsDragging(false);
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      setFile(e.dataTransfer.files[0]);
+      const droppedFile = e.dataTransfer.files[0];
+      // Aceita apenas CSV ou OFX
+      if (droppedFile.name.endsWith('.csv') || droppedFile.name.endsWith('.ofx')) {
+        setFile(droppedFile);
+      } else {
+        alert("Por favor, envie apenas arquivos .CSV ou .OFX");
+      }
     }
-  };
+  }, []);
 
   return (
-    <div className="flex flex-col gap-6 p-4 lg:p-8 max-w-5xl mx-auto">
+    <div 
+      className="flex flex-col gap-6 p-4 lg:p-8 max-w-5xl mx-auto h-full"
+      onDragOver={handleDragOver}
+      onDrop={handleDrop}
+      onDragLeave={handleDragLeave}
+    >
       <h1 className="text-2xl font-bold tracking-tight">Importar Extratos</h1>
       <p className="text-sm text-muted-foreground">
         Faça o upload dos arquivos OFX ou CSV do Nubank, Banco do Brasil, Itaú ou VR/VA para alimentar o histórico de meses anteriores.
       </p>
 
-      <div 
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
-        className={`mt-6 flex flex-col items-center justify-center h-64 border-2 border-dashed rounded-xl transition-colors ${
-          isDragging ? "border-primary bg-primary/5" : "border-muted-foreground/30 bg-card"
+      <label 
+        className={`mt-6 flex flex-col items-center justify-center h-64 border-2 border-dashed rounded-xl transition-colors cursor-pointer ${
+          isDragging ? "border-primary bg-primary/10 scale-[1.02]" : "border-muted-foreground/30 bg-card hover:bg-muted/50"
         }`}
       >
         {file ? (
           <div className="flex flex-col items-center gap-3 text-green-500">
             <CheckCircle2 className="h-12 w-12" />
             <span className="font-medium text-foreground">{file.name}</span>
-            <button onClick={() => setFile(null)} className="text-xs text-red-500 hover:underline mt-2">Remover arquivo</button>
+            <button 
+              type="button"
+              onClick={(e) => { e.preventDefault(); setFile(null); }} 
+              className="text-xs text-red-500 hover:underline mt-2 z-10 relative"
+            >
+              Remover arquivo
+            </button>
           </div>
         ) : (
-          <div className="flex flex-col items-center gap-3 text-muted-foreground">
-            <UploadCloud className="h-12 w-12 opacity-50" />
-            <span className="font-medium">Arraste seu arquivo .OFX ou .CSV aqui</span>
+          <div className="flex flex-col items-center gap-3 text-muted-foreground pointer-events-none">
+            <UploadCloud className={`h-12 w-12 ${isDragging ? "text-primary animate-bounce" : "opacity-50"}`} />
+            <span className="font-medium text-foreground">
+              {isDragging ? "Solte o arquivo agora!" : "Arraste seu arquivo .OFX ou .CSV aqui"}
+            </span>
             <span className="text-xs">ou clique para selecionar do computador</span>
-            <input type="file" accept=".ofx,.csv" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" onChange={(e) => setFile(e.target.files?.[0] || null)} />
           </div>
         )}
-      </div>
+        <input 
+          type="file" 
+          accept=".ofx,.csv" 
+          className="hidden" 
+          onChange={(e) => {
+            if (e.target.files?.[0]) setFile(e.target.files[0]);
+          }} 
+        />
+      </label>
 
       <div className="flex justify-end mt-4">
         <button 
