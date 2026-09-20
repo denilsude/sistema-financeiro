@@ -26,7 +26,8 @@ export function GraficoGastosPizza({ dados }: { dados: { name: string; value: nu
               <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
             ))}
           </Pie>
-          <Tooltip formatter={(value: number) => `R$ ${(value / 100).toFixed(2).replace('.', ',')}`} />
+          {/* A correção do erro do TypeScript está aqui: value: any */}
+          <Tooltip formatter={(value: any) => `R$ ${(Number(value) / 100).toFixed(2).replace('.', ',')}`} />
           <Legend />
         </PieChart>
       </ResponsiveContainer>
