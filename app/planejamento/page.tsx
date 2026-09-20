@@ -19,12 +19,11 @@ export default function PlanejamentoPage() {
   async function carregarDados() {
     const resumo = await getResumoMes(mes, ano);
     setDados(resumo);
-    setInsightIA(""); // Limpa a IA ao trocar de mês
+    setInsightIA("");
   }
 
   async function gerarInsight() {
     setCarregandoIA(true);
-    // Envia os dados do mês para o N8N / Gemini
     const resposta = await analisarComIA(dados);
     setInsightIA(resposta);
     setCarregandoIA(false);
@@ -35,13 +34,19 @@ export default function PlanejamentoPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <h1 className="text-2xl font-semibold">Planejamento e IA</h1>
         
-        {/* Seletor de Mês e Ano */}
         <div className="flex gap-2">
           <select 
             value={mes} 
             onChange={(e) => setMes(Number(e.target.value))}
             className="h-10 rounded-md border bg-background px-3"
           >
+            <option value={1}>Janeiro</option>
+            <option value={2}>Fevereiro</option>
+            <option value={3}>Março</option>
+            <option value={4}>Abril</option>
+            <option value={5}>Maio</option>
+            <option value={6}>Junho</option>
+            <option value={7}>Julho</option>
             <option value={8}>Agosto</option>
             <option value={9}>Setembro</option>
             <option value={10}>Outubro</option>
@@ -59,20 +64,19 @@ export default function PlanejamentoPage() {
         </div>
       </div>
 
-      {/* Cards de Resumo Financeiro */}
       <div className="grid gap-4 md:grid-cols-3">
         <div className="rounded-xl border bg-card p-6 shadow-sm flex flex-col gap-2">
           <div className="flex items-center text-muted-foreground gap-2">
             <TrendingUp className="h-4 w-4 text-green-500" /> Receitas
           </div>
-          <span className="text-2xl font-bold">R$ {(dados.receitas / 100).toFixed(2)}</span>
+          <span className="text-2xl font-bold">R$ {(dados.receitas / 100).toFixed(2).replace('.', ',')}</span>
         </div>
         
         <div className="rounded-xl border bg-card p-6 shadow-sm flex flex-col gap-2">
           <div className="flex items-center text-muted-foreground gap-2">
             <TrendingDown className="h-4 w-4 text-red-500" /> Despesas
           </div>
-          <span className="text-2xl font-bold">R$ {(dados.despesas / 100).toFixed(2)}</span>
+          <span className="text-2xl font-bold">R$ {(dados.despesas / 100).toFixed(2).replace('.', ',')}</span>
         </div>
 
         <div className="rounded-xl border bg-primary/10 p-6 shadow-sm flex flex-col gap-2">
@@ -80,12 +84,11 @@ export default function PlanejamentoPage() {
             <Wallet className="h-4 w-4" /> Excedente Real
           </div>
           <span className="text-2xl font-bold text-primary">
-            R$ {(dados.excedente / 100).toFixed(2)}
+            R$ {(dados.excedente / 100).toFixed(2).replace('.', ',')}
           </span>
         </div>
       </div>
 
-      {/* Área do Conselheiro IA */}
       <div className="rounded-xl border border-primary/20 bg-card shadow-sm overflow-hidden">
         <div className="bg-primary/5 p-4 border-b border-primary/10 flex items-center justify-between">
           <div className="flex items-center gap-2 font-medium text-primary">
@@ -98,7 +101,7 @@ export default function PlanejamentoPage() {
         </div>
         <div className="p-6 min-h-[150px] flex items-center justify-center text-muted-foreground">
           {insightIA ? (
-            <p className="text-foreground leading-relaxed w-full text-left">
+            <p className="text-foreground leading-relaxed w-full text-left whitespace-pre-wrap">
               {insightIA}
             </p>
           ) : (

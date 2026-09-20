@@ -7,11 +7,15 @@ const prisma = new PrismaClient();
 
 export async function criarTransacao(formData: FormData) {
   const descricao = formData.get("descricao") as string;
-  const valorBrutoStr = formData.get("valor") as string;
-  const valorBruto = Math.round(parseFloat(valorBrutoStr) * 100);
+  const payee = formData.get("payee") as string; // Local/Destino (iFood, Mercado)
+  const valorInput = formData.get("valor") as string;
+  
+  // Limpa a formatação brasileira (1.000,50 -> 1000.50) e converte para centavos
+  const valorLimpo = valorInput.replace(/\./g, "").replace(",", ".");
+  const valorBruto = Math.round(parseFloat(valorLimpo) * 100);
   
   const temDesconto = formData.get("temDesconto") === "on";
-  const tipoDesconto = formData.get("tipoDesconto") as string; // 'PERCENTAGE' ou 'FIXED'
+  const tipoDesconto = formData.get("tipoDesconto") as string;
   const valorDescontoStr = formData.get("valorDesconto") as string;
   
   let discountAmount = 0;
@@ -19,7 +23,7 @@ export async function criarTransacao(formData: FormData) {
   let discountValue = null;
 
   if (temDesconto && valorDescontoStr) {
-    const parsedValue = parseFloat(valorDescontoStr);
+    const parsedValue = parseFloat(valorDescontoStr.replace(/\./g, "").replace(",", "."));
     discountValue = parsedValue;
 
     if (tipoDesconto === "PERCENTAGE") {
@@ -27,14 +31,12 @@ export async function criarTransacao(formData: FormData) {
     } else if (tipoDesconto === "FIXED") {
       discountAmount = Math.round(parsedValue * 100);
     }
-    
     finalAmount = valorBruto - discountAmount;
   }
 
-  // Cria estrutura básica para teste se não houver conta
   let account = await prisma.account.findFirst();
   if (!account) {
-    const institution = await prisma.institution.create({ data: { name: "Banco Principal" } });
+    const institution = await prisma.institution.create({ data: { name: "Banco Principal", color: "#820ad1" } });
     account = await prisma.account.create({
       data: { name: "Conta Corrente", type: "CHECKING", balance: 0, institutionId: institution.id }
     });
@@ -44,7 +46,7 @@ export async function criarTransacao(formData: FormData) {
     await tx.transaction.create({
       data: {
         accountId: account.id,
-        type: "INCOME",
+        type: "EXPENSE", // Estamos assumindo saída por padrão no teste
         amount: finalAmount,
         grossAmount: valorBruto,
         discountType: temDesconto ? tipoDesconto : null,
@@ -52,6 +54,7 @@ export async function criarTransacao(formData: FormData) {
         discountAmount: temDesconto ? discountAmount : null,
         date: new Date(),
         description: descricao,
+        payee: payee,
         beneficiaryType: "FAMILY",
         beneficiaryId: "beneficiario-teste"
       }
@@ -59,7 +62,7 @@ export async function criarTransacao(formData: FormData) {
 
     await tx.account.update({
       where: { id: account.id },
-      data: { balance: { increment: finalAmount } }
+      data: { balance: { decrement: finalAmount } } // Decrementa pois é gasto
     });
   });
 
