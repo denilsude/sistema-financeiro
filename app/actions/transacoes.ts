@@ -7,10 +7,12 @@ const prisma = new PrismaClient();
 
 export async function criarTransacao(formData: FormData) {
   const descricao = formData.get("descricao") as string;
-  const payee = formData.get("payee") as string; // Local/Destino (iFood, Mercado)
+  const payee = formData.get("payee") as string; 
   const valorInput = formData.get("valor") as string;
+  const memberId = formData.get("memberId") as string;
+  const accountId = formData.get("accountId") as string; // Qual banco/cartão/vale
+  const type = formData.get("type") as string; // INCOME ou EXPENSE
   
-  // Limpa a formatação brasileira (1.000,50 -> 1000.50) e converte para centavos
   const valorLimpo = valorInput.replace(/\./g, "").replace(",", ".");
   const valorBruto = Math.round(parseFloat(valorLimpo) * 100);
   
@@ -20,49 +22,39 @@ export async function criarTransacao(formData: FormData) {
   
   let discountAmount = 0;
   let finalAmount = valorBruto;
-  let discountValue = null;
 
   if (temDesconto && valorDescontoStr) {
     const parsedValue = parseFloat(valorDescontoStr.replace(/\./g, "").replace(",", "."));
-    discountValue = parsedValue;
-
     if (tipoDesconto === "PERCENTAGE") {
       discountAmount = Math.round(valorBruto * (parsedValue / 100));
-    } else if (tipoDesconto === "FIXED") {
+    } else {
       discountAmount = Math.round(parsedValue * 100);
     }
     finalAmount = valorBruto - discountAmount;
   }
 
-  let account = await prisma.account.findFirst();
-  if (!account) {
-    const institution = await prisma.institution.create({ data: { name: "Banco Principal", color: "#820ad1" } });
-    account = await prisma.account.create({
-      data: { name: "Conta Corrente", type: "CHECKING", balance: 0, institutionId: institution.id }
-    });
-  }
-
   await prisma.$transaction(async (tx) => {
     await tx.transaction.create({
       data: {
-        accountId: account.id,
-        type: "EXPENSE", // Estamos assumindo saída por padrão no teste
+        accountId: accountId,
+        type: type,
         amount: finalAmount,
         grossAmount: valorBruto,
         discountType: temDesconto ? tipoDesconto : null,
-        discountValue: temDesconto ? discountValue : null,
+        discountValue: temDesconto ? parseFloat(valorDescontoStr) : null,
         discountAmount: temDesconto ? discountAmount : null,
         date: new Date(),
         description: descricao,
         payee: payee,
-        beneficiaryType: "FAMILY",
-        beneficiaryId: "beneficiario-teste"
+        beneficiaryType: "USER",
+        beneficiaryId: memberId || "family-default"
       }
     });
 
+    // Se for receita (INCOME) o saldo sobe, se for despesa (EXPENSE) o saldo cai
     await tx.account.update({
-      where: { id: account.id },
-      data: { balance: { decrement: finalAmount } } // Decrementa pois é gasto
+      where: { id: accountId },
+      data: { balance: type === "INCOME" ? { increment: finalAmount } : { decrement: finalAmount } } 
     });
   });
 
@@ -73,6 +65,6 @@ export async function criarTransacao(formData: FormData) {
 export async function buscarTransacoes() {
   return await prisma.transaction.findMany({
     orderBy: { createdAt: "desc" },
-    include: { account: true }
+    include: { account: { include: { institution: true } } }
   });
 }

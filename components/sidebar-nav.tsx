@@ -20,6 +20,7 @@ const menuItems = [
   { name: "Planejamento", icon: Wallet, href: "/planejamento" },
   { name: "Objetivos", icon: Target, href: "/objetivos" },
   { name: "Empresa", icon: Building2, href: "/empresa" },
+  { name: "Importar Extratos", icon: Upload, href: "/importacao" },
 ];
 
 export function SidebarNav() {
